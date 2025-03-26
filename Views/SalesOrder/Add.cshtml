@@ -1,0 +1,294 @@
+@model SimpleApp.DTO.OrderDto
+@{
+    ViewData["Title"] = "ADD NEW - SALES ORDER";
+    Layout = "_Layout";
+}
+
+<div>
+    <form asp-action="Add" method="post">
+        <div class="text-dark text-center py-2" style="background: rgb(0,42,92); font-weight: 700;">
+            <h5 class="mb-0 text-white">Sales Order Information</h5>
+        </div>
+        <div class="mb-4 main-page">
+            <div class="row">
+                <div class="row d-flex justify-content-around mt-3">
+                    <div class="col-md-4">
+                        <div class="form-group d-flex align-items-center">
+                            <label class="mr-3 w-25 text-right">Sales Order Number*</label>
+                            <input asp-for="OrderNo" class="form-control w-75 border-dark" required>
+                            <span asp-validation-for="OrderNo" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group d-flex align-items-center">
+                            <label class="mr-3 w-25 text-right">Customer*</label>
+                            <select asp-for="ComCustomerId" class="form-control w-75 border-dark" asp-items="@(new SelectList(Model.Customers, "ComCustomerId", "CustomerName"))" required>
+                                <option value="">-- Select Customer --</option>
+                            </select>
+                            <span asp-validation-for="ComCustomerId" class="text-danger"></span>
+                        </div>
+                    </div>
+                </div>
+                <div class="row d-flex justify-content-around mt-3">
+                    <div class="col-md-4">
+                        <div class="form-group d-flex align-items-center">
+                            <label class="mr-3 w-25 text-right">Order Date*</label>
+                            <input asp-for="OrderDate" class="form-control w-75 border-dark" type="date" required>
+                            <span asp-validation-for="OrderDate" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group d-flex align-items-center">
+                            <label class="mr-3 w-25 text-right">Address</label>
+                            <textarea asp-for="Address" class="form-control w-75 border-dark" rows="3" optional></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="text-dark text-center py-2" style="background: rgb(0,42,92); font-weight: 700;">
+            <h5 class="mb-0 text-white">Detail Item Information</h5>
+        </div>
+        <div class="main-page">
+            <button type="button" id="addBtn" class="btn btn-lg text-white mt-3 px-4 py-2" style="background-color: rgb(136,7,67)">Add Item</button>
+            <table id="soItemTable" class="table table-striped mt-3 border border-dark" style="margin-bottom: 0">
+                <thead style="background-color: rgb(0,42,92)" class="text-white">
+                    <tr>
+                        <th>NO</th>
+                        <th>ACTION</th>
+                        <th>ITEM NAME</th>
+                        <th>QTY</th>
+                        <th>PRICE</th>
+                        <th>TOTAL</th>
+                    </tr>
+                </thead>
+                <tbody>
+
+                </tbody>
+            </table>
+            <div class="d-flex" style="background: rgb(240,238,238);">
+                <div class="col-md-6"></div>
+                <div class="col-md-6 text-right d-flex justify-content-around align-items-center">
+                    <p style="font-weight: 700; margin: 0;">Total Item: <span id="totalItem">0</span></p>
+                    <p style="font-weight: 700; margin: 0;">Total Amount: <span id="totalAmount">0</span></p>
+                </div>
+            </div>
+            <div class="border border-dark">
+                <div class="pt-3" style="background: rgb(240,238,238)"></div>
+                <div style="background: rgb(240,238,238); margin-bottom: 0;">
+                    <div id="soItemTablePagination" class="d-flex justify-content-between align-items-center">
+                        <nav>
+                            <ul class="pagination">
+                            </ul>
+                        </nav>
+                        <span id="itemCount"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="mt-3 mb-3 d-flex justify-content-center align-items-center main-page">
+            <div>
+                <button type="submit" class="btn btn-lg text-white px-4 py-2 mx-3" style="background-color: rgb(136,7,67); font-size: 14px;">Save</button>
+                <a asp-action="Index" class="btn btn-lg text-white px-4 py-2 mx-3" style="background-color: rgb(0,42,92); font-size: 14px;">Close</a>
+            </div>
+        </div>
+
+    </form>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        $(document).ready(function() {
+            let items = [];
+            let page = 1;
+            let perPage = 5;
+
+            function renderItems() {
+                let tbody = $('#soItemTable tbody');
+                tbody.empty();
+
+                if (items.length === 0) {
+                    tbody.append(`
+                        <tr>
+                            <td colspan="6" class="text-center text-muted">No items in this sales order</td>
+                        </tr>
+                    `)
+                    return;
+                }
+
+                let startIndex = (page - 1) * perPage;
+                let endIndex = startIndex + perPage;
+                let pageItems = items.slice(startIndex, endIndex);
+
+                pageItems.forEach(function (item, index) {
+                    tbody.append(`
+                        <tr>
+                            <td>${startIndex + index + 1}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-primary edit-item" data-index="${startIndex + index}">
+                                            <i class="fa fa-edit fa-sm"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger delete-item" data-index="${startIndex + index}">
+                                                    <i class="fa fa-trash fa-sm"></i>
+                                </button>
+                            </td>
+                            <td>${item.itemName}</td>
+                            <td>${item.quantity}</td>
+                            <td>${item.price}</td>
+                            <td>${(item.quantity * item.price)}</td>
+                        </tr>
+                    `);
+                });
+
+                updateTotals();
+                renderPagination();
+            }
+
+            function renderPagination() {
+                var totalPages = Math.ceil(items.length / perPage);
+                var paginationHtml = '<ul class="pagination">';
+                paginationHtml += `<li class="page-item ${page === 1 ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${page - 1}">&laquo;</a></li>`;
+                for (var i = 1; i <= totalPages; i++) {
+                    paginationHtml += `<li class="page-item ${i === page ? 'active' : ''}"><a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
+                }
+                paginationHtml += `<li class="page-item ${page === totalPages ? 'disabled' : ''}"><a class="page-link" href="#" data-page="${page + 1}">&raquo;</a></li>`;
+                paginationHtml += '</ul>';
+                $('#soItemTablePagination').html(paginationHtml);
+            }
+
+            $(document).on('click', '#soItemTablePagination .page-link', function (e) {
+                e.preventDefault();
+                var selectedPage = $(this).data('page');
+                if (selectedPage && selectedPage >= 1 && selectedPage <= Math.ceil(items.length / perPage)) {
+                    page = selectedPage;
+                    renderItems();
+                }
+            });
+
+            function updateTotals() {
+                var totalItem = items.reduce((sum, item) => sum + item.quantity, 0);
+                var totalAmount = items.reduce((sum, item) => sum + (item.quantity * item.price), 0);
+                $('#totalItem').text(totalItem);
+                $('#totalAmount').text(totalAmount);
+            }
+
+            $('#addBtn').click(function () {
+                items.push({ itemName: '', quantity: 0, price: 0 });
+                page = Math.ceil(items.length / perPage);
+
+                renderItems();
+                editItem(items.length - 1);
+            });
+
+            function editItem(index) {
+                var item = items[index] || { itemName: '', quantity: 0, price: 0 };
+                var row = $(`#soItemTable tbody tr:eq(${index % perPage})`);
+                row.html(`
+                            <td>${index + 1}</td>
+                            <td>
+                                <button type="button" class="btn btn-sm btn-info save-item" data-index="${index}">
+                                    <i class="fa fa-save"></i>
+                                </button>
+                                <button type="button" class="btn btn-sm btn-danger cancel-edit" data-index="${index}">
+                                    <i class="fa fa-times"></i>
+                                </button>
+                            </td>
+                            <td><input type="text" class="form-control" value="${item.itemName}"></td>
+                            <td><input type="number" class="form-control" value="${item.quantity}"></td>
+                            <td><input type="number" class="form-control" value="${item.price}"></td>
+                            <td>${(item.quantity * item.price)}</td>
+                        `);
+            }
+
+            $(document).on('click', '.edit-item', function () {
+                var index = $(this).data('index');
+                editItem(index);
+            });
+
+            $(document).on('click', '.delete-item', function () {
+                var index = $(this).data('index');
+                items.splice(index, 1);
+                page = Math.ceil(items.length / perPage);
+                renderItems();
+            });
+
+            $(document).on('click', '.save-item', function() {
+                var index = $(this).data('index');
+                var row = $(`#soItemTable tbody tr:eq(${index % perPage})`);
+                var newItem = {
+                    itemName: row.find('td:eq(2) input').val().trim(),
+                    quantity: parseInt(row.find('td:eq(3) input').val()) || 0,
+                    price: parseFloat(row.find('td:eq(4) input').val()) || 0
+                };
+                if (newItem.itemName !== '' || newItem.quantity !== 0 || newItem.price !== 0) {
+                    items[index] = newItem;
+                    if (index === items.length - 1) {
+                        items.push({ itemName: '', quantity: 0, price: 0 });
+                    }
+                } else if (index === items.length - 1) {
+                    return;
+                }
+
+                page = Math.ceil(items.length / perPage);
+                
+                renderItems();
+                if (index === items.length - 2) {
+                    editItem(items.length - 1);
+                }
+            });
+
+            $(document).on('click', '.cancel-edit', function () {
+                var index = $(this).data('index');
+                if (index === items.length - 1 && items[index].itemName === '' && items[index].quantity === 0 && items[index].price === 0) {
+                    items.pop();
+                }
+                page = Math.ceil(items.length / perPage);
+                renderItems();
+            });
+
+            $('form').submit(function (e) {
+                e.preventDefault();
+
+                let isValid = true;
+
+                if ($('input[name="OrderDate"]').val() === '') {
+                    isValid = false;
+                }
+                if ($('select[name="ComCustomerId"]').val() === '') {
+                    isValid = false;
+                }
+
+                if (!isValid) return;
+
+                if (items.length > 0) {
+                    var lastItem = items[items.length - 1];
+                    if (lastItem.itemName === '' && lastItem.quantity === 0 && lastItem.price === 0) {
+                        items.pop();
+                    }
+                }
+                var formData = new FormData(this);
+                formData.append('Items', JSON.stringify(items));
+
+                $.ajax({
+                    url: $(this).attr('action'),
+                    method: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: function () {
+                        window.location.href = '@Url.Action("Index", "SalesOrder")';
+                    },
+                    error: function (xhr, status, error) {
+                        console.error(error);
+                        alert('An error occurred while saving the order. Please try again.');
+                    }
+                });
+            });
+
+            renderItems();
+        });
+    </script>
+} 
